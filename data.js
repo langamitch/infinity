@@ -7,7 +7,7 @@ export const projects = [
   },
   {
     title: "Idle Form",
-    image: "/img2.jpeg",
+    image: "./public/img2.jpeg",
     year: 2023,
     // href: "/sample-project",
   },
