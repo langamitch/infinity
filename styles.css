@@ -109,3 +109,44 @@ body.dragging {
   cursor: pointer;
 }
 /* ...existing code... */
+
+
+ .sidebar {
+  position: fixed;
+  bottom: 2rem;
+  left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: rgba(17, 17, 17, 0.4); /* translucent dark layer */
+  backdrop-filter: blur(12px);        /* glass blur */
+  -webkit-backdrop-filter: blur(12px);
+  padding: 10px 13px;
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.15); /* soft glass border */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);   /* depth */
+  z-index: 1000;
+}
+
+
+  .sidebar .material-icons {
+    color: white;
+    font-size: 26px;
+    cursor: pointer;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .sidebar .material-icons:hover {
+    color: #4ade80;
+    transform: scale(1.2);
+  }
+
+
+  @media (min-width: 768px) {
+    .sidebar {
+      top: 50%;
+      bottom: auto;
+      left: 1rem;
+      transform: translateY(-50%);
+    }
+  }
