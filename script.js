@@ -25,6 +25,10 @@ let zoomLevel = 1.0,
   targetZoom = 1.0;
 let textTextures = [];
 
+// Normalize public asset URLs for dev servers that serve /public at root
+const resolveAssetUrl = (url) =>
+  typeof url === 'string' ? url.replace(/^\/public\//, '/') : url;
+
 const rgbaToArray = (rgba) => {
   const match = rgba.match(/rgba?\(([^)]+)\)/);
   if (!match) return [1, 1, 1, 1];
@@ -110,8 +114,9 @@ const loadTextures = () => {
 
   return new Promise((resolve) => {
     projects.forEach((project) => {
+      const imageUrl = resolveAssetUrl(project.image);
       const texture = textureLoader.load(
-        project.image,
+        imageUrl,
         () => {
           if (++loadedCount === projects.length) resolve(imageTextures);
         },
@@ -343,7 +348,7 @@ const closeBtn = document.getElementById('close-overlay');
 
 // Function to show overlay
 function showOverlay(project) {
-  overlayImg.src = project.image;
+  overlayImg.src = resolveAssetUrl(project.image);
   overlayTitle.textContent = project.title;
   overlayYear.textContent = project.year;
   overlay.style.display = 'flex';
