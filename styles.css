@@ -65,6 +65,16 @@ body.dragging {
   display: flex;
   align-items: center;
 }
+.navbar .logo {
+  display: flex;
+  align-items: center;
+  color:white;
+  gap:4px;
+}
+.logo h1{
+  color: white;
+  font-size:16px;
+  font-weight: 600;}
 
 .navbar .getintouch{
   background: white;
