@@ -25,6 +25,15 @@ let zoomLevel = 1.0,
   targetZoom = 1.0;
 let textTextures = [];
 
+// Normalize public asset URLs to support different hosting bases
+const base = (document.querySelector('base')?.getAttribute('href') || '/').replace(/\/$/, '');
+const resolveAssetUrl = (url) => {
+  if (typeof url !== 'string') return url;
+  let normalized = url.replace(/^\/public\//, '/').replace(/^public\//, '/');
+  if (!normalized.startsWith('/')) normalized = '/' + normalized;
+  return base + normalized;
+};
+
 const rgbaToArray = (rgba) => {
   const match = rgba.match(/rgba?\(([^)]+)\)/);
   if (!match) return [1, 1, 1, 1];
@@ -62,6 +71,7 @@ const createTextTexture = (title, year) => {
     generateMipmaps: false,
     format: THREE.RGBAFormat,
   });
+  texture.needsUpdate = true;
 
   return texture;
 };
@@ -99,26 +109,85 @@ const createTextureAtlas = (textures, isText = false) => {
     magFilter: THREE.LinearFilter,
     flipY: false,
   });
+  atlasTexture.needsUpdate = true;
 
   return atlasTexture;
 };
 
 const loadTextures = () => {
   const textureLoader = new THREE.TextureLoader();
+  if (textureLoader.setCrossOrigin) textureLoader.setCrossOrigin('anonymous');
+  if (textureLoader.setWithCredentials) textureLoader.setWithCredentials(false);
   const imageTextures = [];
   let loadedCount = 0;
 
+  const buildCandidates = (path) => {
+    if (typeof path !== 'string') return [];
+    const candidates = [];
+    if (path.startsWith('/public/')) {
+      candidates.push(path.replace('/public/', '/'));          // '/img1.jpeg'
+      candidates.push(path.replace('/public/', 'public/'));    // 'public/img1.jpeg'
+      candidates.push(path);                                   // '/public/img1.jpeg'
+    } else if (path.startsWith('public/')) {
+      candidates.push('/' + path.replace(/^public\//, ''));   // '/img1.jpeg'
+      candidates.push(path);                                   // 'public/img1.jpeg'
+      candidates.push('/' + path);                             // '/public/img1.jpeg'
+    } else {
+      candidates.push(path);
+      if (!path.startsWith('/')) candidates.push('/' + path);
+      // If it's absolute like '/img1.jpeg', also try 'public/img1.jpeg' for file:// usage
+      if (path.startsWith('/')) {
+        candidates.push('public/' + path.replace(/^\//, ''));
+      }
+    }
+    return [...new Set(candidates)];
+  };
+
+  const loadWithFallback = (targetTexture, paths, done) => {
+    let index = 0;
+    const tryNext = () => {
+      if (index >= paths.length) {
+        // Final fallback to a transparent 2x2 placeholder
+        const ph = document.createElement('canvas');
+        ph.width = ph.height = 2;
+        const phCtx = ph.getContext('2d');
+        phCtx.clearRect(0, 0, 2, 2);
+        targetTexture.image = ph;
+        targetTexture.needsUpdate = true;
+        done();
+        return;
+      }
+      const url = paths[index++];
+      textureLoader.load(
+        url,
+        (loadedTex) => {
+          targetTexture.image = loadedTex.image;
+          targetTexture.needsUpdate = true;
+          done();
+        },
+        undefined,
+        tryNext
+      );
+    };
+    tryNext();
+  };
+
   return new Promise((resolve) => {
     projects.forEach((project) => {
+      const candidates = buildCandidates(project.image);
+      // Prime a target texture to keep atlas ordering stable
+      const primeUrl = candidates[0] || resolveAssetUrl(project.image);
       const texture = textureLoader.load(
-        project.image,
+        primeUrl,
         () => {
           if (++loadedCount === projects.length) resolve(imageTextures);
         },
         undefined,
         () => {
-          // Count errors too so the app doesn't hang if an asset fails
-          if (++loadedCount === projects.length) resolve(imageTextures);
+          // On initial failure, attempt fallbacks while keeping the same texture object
+          loadWithFallback(texture, candidates.slice(1), () => {
+            if (++loadedCount === projects.length) resolve(imageTextures);
+          });
         }
       );
 
@@ -343,7 +412,14 @@ const closeBtn = document.getElementById('close-overlay');
 
 // Function to show overlay
 function showOverlay(project) {
-  overlayImg.src = project.image;
+  const candidates = (typeof project?.image === 'string') ? buildCandidates(project.image) : [];
+  let chosen = candidates[0] || resolveAssetUrl(project.image);
+  if (location.protocol === 'file:') {
+    chosen = candidates.find(p => !p.startsWith('/')) || chosen;
+  } else {
+    chosen = candidates.find(p => p.startsWith('/')) || chosen;
+  }
+  overlayImg.src = chosen;
   overlayTitle.textContent = project.title;
   overlayYear.textContent = project.year;
   overlay.style.display = 'flex';
