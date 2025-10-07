@@ -84,7 +84,8 @@ export const fragmentShader = `
     
     bool inTextArea = cellUV.x >= 0.05 && cellUV.x <= 0.95 && cellUV.y >= textY && cellUV.y <= (textY + textHeight);
     
-    float texIndex = mod(cellId.x + cellId.y * 3.0, uTextureCount);
+    // Ensure a non-negative texture index so atlas addressing is valid for negative cellIds
+    float texIndex = mod(mod(cellId.x + cellId.y * 3.0, uTextureCount) + uTextureCount, uTextureCount);
     
     vec3 color = backgroundColor;
     

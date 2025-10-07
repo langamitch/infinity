@@ -13,13 +13,13 @@
      <a href="mailto:bashh0409@gmail.com" class="getintouch">Get in touch</a>
       </div>
     </nav>
-    <section id="gallery">
+    <section id="gallery" aria-label="Draggable gallery canvas">
       <div class="vignette-overlay"></div>
 
       <!-- ...existing code... -->
-<div id="project-overlay" class="overlay" style="display:none;">
+<div id="project-overlay" class="overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
   <div class="overlay-content">
-    <span id="close-overlay" class="close-btn">&times;</span>
+    <button id="close-overlay" class="close-btn" aria-label="Close overlay">&times;</button>
     <img id="overlay-image" src="" alt="Project Image" />
     <h2 id="overlay-title"></h2>
     <p id="overlay-year"></p>
@@ -27,16 +27,7 @@
 </div>
 <!-- ...existing code... -->
     </section>
-<!-- ...existing code... -->
-<div id="project-overlay" class="overlay" style="display:none;">
-  <div class="overlay-content">
-    <span id="close-overlay" class="close-btn">&times;</span>
-    <img id="overlay-image" src="" alt="Project Image" />
-    <h2 id="overlay-title"></h2>
-    <p id="overlay-year"></p>
-  </div>
-</div>
-<!-- ...existing code... -->
+<!-- Removed duplicate overlay markup -->
 
 <!-- Sidebar Section -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">

@@ -84,10 +84,10 @@ const createTextureAtlas = (textures, isText = false) => {
     const x = (index % atlasSize) * textureSize;
     const y = Math.floor(index / atlasSize) * textureSize;
 
-    if (isText && texture.source?.data) {
-      ctx.drawImage(texture.source.data, x, y, textureSize, textureSize);
-    } else if (!isText && texture.image?.complete) {
-      ctx.drawImage(texture.image, x, y, textureSize, textureSize);
+    // Support both Texture.image (common in r155) and Texture.source.data (newer versions)
+    const sourceImage = texture.image || texture.source?.data;
+    if (sourceImage) {
+      ctx.drawImage(sourceImage, x, y, textureSize, textureSize);
     }
   });
 
@@ -110,9 +110,17 @@ const loadTextures = () => {
 
   return new Promise((resolve) => {
     projects.forEach((project) => {
-      const texture = textureLoader.load(project.image, () => {
-        if (++loadedCount === projects.length) resolve(imageTextures);
-      });
+      const texture = textureLoader.load(
+        project.image,
+        () => {
+          if (++loadedCount === projects.length) resolve(imageTextures);
+        },
+        undefined,
+        () => {
+          // Count errors too so the app doesn't hang if an asset fails
+          if (++loadedCount === projects.length) resolve(imageTextures);
+        }
+      );
 
       Object.assign(texture, {
         wrapS: THREE.ClampToEdgeWrapping,
@@ -203,8 +211,12 @@ const onPointerUp = (event) => {
       const texIndex = Math.floor((cellX + cellY * 3.0) % projects.length);
       const actualIndex = texIndex < 0 ? projects.length + texIndex : texIndex;
 
-      if (projects[actualIndex]?.href) {
-        window.location.href = projects[actualIndex].href;
+      const project = projects[actualIndex];
+      if (project?.href) {
+        window.location.href = project.href;
+      } else {
+        // Fallback to overlay when no href is provided
+        showOverlay(project);
       }
     }
   }
@@ -217,7 +229,7 @@ const onWindowResize = () => {
   const { offsetWidth: width, offsetHeight: height } = container;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
-  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
   plane?.material.uniforms.uResolution.value.set(width, height);
 };
 
@@ -267,7 +279,7 @@ const init = async () => {
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setSize(container.offsetWidth, container.offsetHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
 
   const bgColor = rgbaToArray(config.backgroundColor);
   renderer.setClearColor(
@@ -344,6 +356,11 @@ function hideOverlay() {
 
 // Close button event
 closeBtn.addEventListener('click', hideOverlay);
+
+// Close on Escape for accessibility
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') hideOverlay();
+});
 
 // Optional: Hide overlay when clicking outside content
 overlay.addEventListener('click', (e) => {
